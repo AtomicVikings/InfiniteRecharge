@@ -1,11 +1,11 @@
 //Neccesary Packages
 package frc.robot;
-
 import edu.wpi.first.wpilibj.TimedRobot;
 
 //Smart Dashboard
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.CAN;
+
 //Color Stuffs
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.util.Color;
@@ -48,9 +48,6 @@ public class Robot extends TimedRobot {
   
   @Override
   public void robotInit() {
-    //Variables
-    
-
     //Mech
     leftShootyBoi = new TalonFX(5);
     rightShootyBoi = new TalonFX(6);
