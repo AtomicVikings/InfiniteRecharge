@@ -10,16 +10,13 @@ import edu.wpi.first.wpilibj.CAN;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.util.Color;
 import com.revrobotics.ColorSensorV3;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
-
-//import org.graalvm.compiler.nodes.calc.LeftShiftNode;
-
-
-
 //Motor Controllers
 import com.revrobotics.CANSparkMax;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
-
+import edu.wpi.first.wpilibj.Talon;
+import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import com.ctre.phoenix.motorcontrol.can.TalonFX;
+import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 //Drive
 import edu.wpi.first.wpilibj.drive.DifferentialDrive; 
 
@@ -33,17 +30,21 @@ public class Robot extends TimedRobot {
   
   //Drive 
   private DifferentialDrive drive;
+  private TalonFX           topRightDriveBoi, topLeftDriveBoi, bottomRightDriveBoi, bottomLeftDriveBoi;
 
   //Mechanisms
-  private CANSparkMax leftShootyBoi, rightShootyBoi;
+  private CANSparkMax intakeyBoi, rolleyBoi, turretBoi, leftClimbyBoi, rightClimbyBoi;
+  private VictorSPX   conveyorBoi;
+  private TalonFX     leftShootyBoi, rightShootyBoi;
+  
   @Override
   public void robotInit() {
     //Variables
     
 
     //Mech
-    leftShootyBoi = new CANSparkMax(5, MotorType.kBrushless);
-    rightShootyBoi = new CANSparkMax(6, MotorType.kBrushless);
+    leftShootyBoi = new TalonFX(5);
+    rightShootyBoi = new TalonFX(6);
   }
 
   @Override
