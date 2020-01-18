@@ -19,10 +19,19 @@ import com.ctre.phoenix.motorcontrol.can.TalonFX;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 //Drive
 import edu.wpi.first.wpilibj.drive.DifferentialDrive; 
+//NetworkTables
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 
 
 public class Robot extends TimedRobot {
   
+  //NetworkTable
+  NetworkTable table = NetworkTableInstance.getDefault().getTable("limelight");
+  NetworkTableEntry tx = table.getEntry("tx"); //horizontal, from -27 to 27
+  NetworkTableEntry ty = table.getEntry("ty"); //vertical, from -20.5 to 20.5
+  NetworkTableEntry ta = table.getEntry("ta"); //target area, 0% to 100% of image
 
   //I2C fpr Color sensor
   private final I2C.Port i2cPort = I2C.Port.kOnboard;
@@ -74,9 +83,23 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
+
+    
+
   }
 
   @Override
   public void testPeriodic() {
+  }
+
+  public void NetTableVals() {
+    //read values periodically
+    double x = tx.getDouble(0.0);
+    double y = ty.getDouble(0.0);
+    double area = ta.getDouble(0.0);
+    //post to smart dashboard periodically
+    SmartDashboard.putNumber("LimelightX", x);
+    SmartDashboard.putNumber("LimelightY", y);
+    SmartDashboard.putNumber("LimelightArea", area);
   }
 }
