@@ -1,9 +1,10 @@
 //Neccesary Packages
 package frc.robot;
 import edu.wpi.first.wpilibj.TimedRobot;
-
+import edu.wpi.first.wpilibj.GenericHID.Hand;
 //Smart Dashboard
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.CAN;
 
 //Color Stuffs
@@ -15,10 +16,13 @@ import com.revrobotics.CANSparkMax;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.Talon;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
-import com.ctre.phoenix.motorcontrol.can.TalonFX;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 //Drive
-import edu.wpi.first.wpilibj.drive.DifferentialDrive; 
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.XboxController;
+//import edu.wpi.first.wpilibj.GenericHID;
+
 //NetworkTables
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
@@ -27,6 +31,12 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 
 public class Robot extends TimedRobot {
   
+  //Things?
+  private static final String kDefaultAuto = "Default";
+  private static final String kCustomAuto = "My Auto";
+  private String autoSelected;
+  private final SendableChooser<String> chooser = new SendableChooser<>();
+
   //NetworkTable
   NetworkTable table = NetworkTableInstance.getDefault().getTable("limelight");
   NetworkTableEntry tx = table.getEntry("tx"); //horizontal, from -27 to 27
@@ -39,18 +49,34 @@ public class Robot extends TimedRobot {
   
   //Drive 
   private DifferentialDrive drive;
-  private TalonFX           topRightDriveBoi, topLeftDriveBoi, bottomRightDriveBoi, bottomLeftDriveBoi;
+  private WPI_TalonFX           topRightDrive, topLeftDrive, bottomRightDrive, bottomLeftDrive;
 
   //Mechanisms
-  private CANSparkMax intakeyBoi, rolleyBoi, turretBoi, leftClimbyBoi, rightClimbyBoi;
-  private VictorSPX   conveyorBoi;
-  private TalonFX     leftShootyBoi, rightShootyBoi;
+  private CANSparkMax intakey, rolley, turret, leftClimby, rightClimby;
+  private VictorSPX   conveyor;
+  private WPI_TalonFX     leftShooty, rightShooty;
+
+  //Controllers
+  private XboxController logitechAlpha;
+  private XboxController logitechBeta;
+
+  //Limelight stuffs
+  private boolean LimelightHasTarget = false;
+  private double LimelightDriveCommand = 0.0;
+  private double LimelightSteerCommand = 0.0;
+
   
   @Override
   public void robotInit() {
     //Mech
-    leftShootyBoi = new TalonFX(5);
-    rightShootyBoi = new TalonFX(6);
+    leftShooty = new WPI_TalonFX(5);
+    rightShooty = new WPI_TalonFX(6);
+
+    //SmartDashboard (prob dont need)
+    chooser.setDefaultOption("Default Auto", kDefaultAuto);
+    chooser.addOption("My Auto", kCustomAuto);
+    SmartDashboard.putData("Auto choices", chooser);
+
   }
 
   @Override
@@ -66,11 +92,21 @@ public class Robot extends TimedRobot {
     final int proximity = colorSensor.getProximity();
 
     SmartDashboard.putNumber("Proximity", proximity);
+
+    //read values periodically
+    final double x = tx.getDouble(0.0);
+    final double y = ty.getDouble(0.0);
+    final double area = ta.getDouble(0.0);
+    // post to smart dashboard periodically
+    SmartDashboard.putNumber("LimelightX", x);
+    SmartDashboard.putNumber("LimelightY", y);
+    SmartDashboard.putNumber("LimelightArea", area);
+
   }
 
   @Override
   public void autonomousInit() {
-
+    autoSelected = chooser.getSelected();
   }
 
   @Override
@@ -80,8 +116,24 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
+    Update_Limelight_Tracking();
 
-    
+    double varSteer = logitechBeta.getX(Hand.kRight);
+    double varDrive = -logitechBeta.getY(Hand.kLeft);
+    final boolean auto = logitechBeta.getAButton();
+
+    varSteer *= 0.70;
+    varDrive *= 0.70;
+
+    if (auto) {
+      if (LimelightHasTarget) {
+        drive.arcadeDrive(LimelightDriveCommand, LimelightSteerCommand);
+      } else {
+        drive.arcadeDrive(0.0, 0.0);
+      }
+    } else {
+      drive.arcadeDrive(varDrive, varSteer);
+    }
 
   }
 
@@ -89,14 +141,37 @@ public class Robot extends TimedRobot {
   public void testPeriodic() {
   }
 
-  public void NetTableVals() {
-    //read values periodically
-    double x = tx.getDouble(0.0);
-    double y = ty.getDouble(0.0);
-    double area = ta.getDouble(0.0);
-    //post to smart dashboard periodically
-    SmartDashboard.putNumber("LimelightX", x);
-    SmartDashboard.putNumber("LimelightY", y);
-    SmartDashboard.putNumber("LimelightArea", area);
+  public void Update_Limelight_Tracking() {
+    final double STEER_K = 0.03;
+    final double DRIVE_K = 0.26;
+    final double DESIRED_TARGET_AREA = 13.0;
+    final double MAX_DRIVE = 0.7;
+
+    final double tv = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tv").getDouble(0);
+    final double tx = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tx").getDouble(0);
+    final double ty = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ty").getDouble(0);
+    final double ta = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ta").getDouble(0);
+
+    if (tv < 1.0) {
+      LimelightHasTarget = false;
+      LimelightDriveCommand = 0.0;
+      LimelightSteerCommand = 0.0;
+    }
+
+    LimelightHasTarget = true;
+
+    // start with proportional steering
+    double steer_cmd = tx * STEER_K;
+    LimelightSteerCommand = steer_cmd;
+
+    // try to drive forward until the target area reaches our desired area
+    double drive_cmd = (DESIRED_TARGET_AREA - ta) * DRIVE_K;
+
+    // don't let the robot drive too fast into the goal
+    if (drive_cmd > MAX_DRIVE) {
+      drive_cmd = MAX_DRIVE;
+    }
+    LimelightDriveCommand = drive_cmd;
+
   }
 }
