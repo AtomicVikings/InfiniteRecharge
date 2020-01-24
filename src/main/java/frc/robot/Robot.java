@@ -1,14 +1,19 @@
 //Neccesary Packages
 package frc.robot;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 //Smart Dashboard
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.CAN;
+import edu.wpi.first.wpilibj.SerialPort;
+
+import com.kauailabs.navx.frc.AHRS;
 
 //Color Stuffs
 import edu.wpi.first.wpilibj.I2C;
+import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.util.Color;
 import com.revrobotics.ColorSensorV3;
 //Motor Controllers
@@ -20,8 +25,9 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 //Drive
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
-//import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.Timer;
 
 //NetworkTables
 import edu.wpi.first.networktables.NetworkTable;
@@ -30,7 +36,8 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 
 
 public class Robot extends TimedRobot {
-  
+  AHRS ahrs;
+
   //Things?
   private static final String kDefaultAuto = "Default";
   private static final String kCustomAuto = "My Auto";
@@ -57,15 +64,35 @@ public class Robot extends TimedRobot {
   private WPI_TalonFX     leftShooty, rightShooty;
 
   //Controllers
-  private XboxController logitechAlpha;
-  private XboxController logitechBeta;
+  private Joystick logitechAlpha, logitechBeta;
 
   //Limelight stuffs
   private boolean LimelightHasTarget = false;
   private double LimelightDriveCommand = 0.0;
   private double LimelightSteerCommand = 0.0;
 
-  
+  public void operatorControl() {
+    while (isOperatorControl() && isEnabled()) {
+      Timer.delay(0.020); /* wait for one motor time period (50Hz) */
+
+      boolean zero_yaw_pressed = logitechAlpha.getTrigger();
+      if (zero_yaw_pressed) {
+        ahrs.zeroYaw();
+      }
+
+      /* Display Processed Acceleration Data (Linear Acceleration, Motion Detect) */
+      SmartDashboard.putNumber( "IMU_Accel_X",    ahrs.getWorldLinearAccelX());
+      SmartDashboard.putNumber( "IMU_Accel_Y",    ahrs.getWorldLinearAccelY());
+      SmartDashboard.putBoolean("IMU_IsMoving",   ahrs.isMoving());
+      SmartDashboard.putBoolean("IMU_IsRotating", ahrs.isRotating());
+
+      SmartDashboard.putNumber( "RawAccel_X",     ahrs.getRawAccelX());
+      SmartDashboard.putNumber( "RawAccel_Y",     ahrs.getRawAccelY());
+      SmartDashboard.putNumber( "RawAccel_Z",     ahrs.getRawAccelZ());
+      
+    }
+  }
+
   @Override
   public void robotInit() {
     //Mech
@@ -120,7 +147,7 @@ public class Robot extends TimedRobot {
 
     double varSteer = logitechBeta.getX(Hand.kRight);
     double varDrive = -logitechBeta.getY(Hand.kLeft);
-    final boolean auto = logitechBeta.getAButton();
+    final boolean auto = logitechBeta.getRawButton(1);
 
     varSteer *= 0.70;
     varDrive *= 0.70;
