@@ -9,7 +9,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.CAN;
 import edu.wpi.first.wpilibj.SerialPort;
-
 import com.kauailabs.navx.frc.AHRS;
 
 //Color Stuffs
@@ -134,6 +133,9 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousInit() {
+    // Limelight auto
+    Update_Limelight_Tracking();
+
     autoSelected = chooser.getSelected();
   }
 
