@@ -54,22 +54,24 @@ public class Robot extends TimedRobot {
   private final I2C.Port i2cPort = I2C.Port.kOnboard;
   private final ColorSensorV3 colorSensor = new ColorSensorV3(i2cPort);
   
+  private Timer timer = new Timer();
+
   //Drive 
   private DifferentialDrive drive;
-  private WPI_TalonFX           topRightDrive, topLeftDrive, bottomRightDrive, bottomLeftDrive;
+  private WPI_TalonFX topRightDrive, topLeftDrive, bottomRightDrive, bottomLeftDrive;
 
   //Mechanisms
   private CANSparkMax intakey, rolley, turret, leftClimby, rightClimby;
   private VictorSPX   conveyor;
-  private WPI_TalonFX     leftShooty, rightShooty;
+  private WPI_TalonFX leftShooty, rightShooty;
 
   //Controllers
   private Joystick logitechAlpha, logitechBeta;
 
   //Limelight stuffs
   private boolean LimelightHasTarget = false;
-  private double LimelightDriveCommand = 0.0;
-  private double LimelightSteerCommand = 0.0;
+  private double  LimelightDriveCommand = 0.0;
+  private double  LimelightSteerCommand = 0.0;
 
   public void operatorControl() {
     while (isOperatorControl() && isEnabled()) {
@@ -128,29 +130,38 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("LimelightX", x);
     SmartDashboard.putNumber("LimelightY", y);
     SmartDashboard.putNumber("LimelightArea", area);
-
+    
   }
 
   @Override
   public void autonomousInit() {
     // Limelight auto
     Update_Limelight_Tracking();
-
+    timer.reset();
+    timer.start();
     autoSelected = chooser.getSelected();
   }
 
   @Override
   public void autonomousPeriodic() {
+    while (timer.get() < 2.0) {
+      drive.arcadeDrive(0.5, 0.0);
+    }
+  }
 
+  @Override
+  public void teleopInit() {
   }
 
   @Override
   public void teleopPeriodic() {
+    double varSteer = logitechAlpha.getX(Hand.kRight);
+    double varDrive = -logitechAlpha.getY(Hand.kLeft);
+    final boolean auto = logitechAlpha.getRawButton(1);
+    
+    drive.arcadeDrive(logitechAlpha.getRawAxis(1), logitechAlpha.getRawAxis(4));
     Update_Limelight_Tracking();
 
-    double varSteer = logitechBeta.getX(Hand.kRight);
-    double varDrive = -logitechBeta.getY(Hand.kLeft);
-    final boolean auto = logitechBeta.getRawButton(1);
 
     varSteer *= 0.70;
     varDrive *= 0.70;
