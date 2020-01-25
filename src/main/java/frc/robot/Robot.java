@@ -55,45 +55,22 @@ public class Robot extends TimedRobot {
   private final ColorSensorV3 colorSensor = new ColorSensorV3(i2cPort);
   
   private Timer timer = new Timer();
-
   //Drive 
   private DifferentialDrive drive;
-  private WPI_TalonFX topRightDrive, topLeftDrive, bottomRightDrive, bottomLeftDrive;
+  private WPI_TalonFX           topRightDrive, topLeftDrive, bottomRightDrive, bottomLeftDrive;
 
   //Mechanisms
   private CANSparkMax intakey, rolley, turret, leftClimby, rightClimby;
   private VictorSPX   conveyor;
-  private WPI_TalonFX leftShooty, rightShooty;
+  private WPI_TalonFX     leftShooty, rightShooty;
 
   //Controllers
   private Joystick logitechAlpha, logitechBeta;
 
   //Limelight stuffs
   private boolean LimelightHasTarget = false;
-  private double  LimelightDriveCommand = 0.0;
-  private double  LimelightSteerCommand = 0.0;
-
-  public void operatorControl() {
-    while (isOperatorControl() && isEnabled()) {
-      Timer.delay(0.020); /* wait for one motor time period (50Hz) */
-
-      boolean zero_yaw_pressed = logitechAlpha.getTrigger();
-      if (zero_yaw_pressed) {
-        ahrs.zeroYaw();
-      }
-
-      /* Display Processed Acceleration Data (Linear Acceleration, Motion Detect) */
-      SmartDashboard.putNumber( "IMU_Accel_X",    ahrs.getWorldLinearAccelX());
-      SmartDashboard.putNumber( "IMU_Accel_Y",    ahrs.getWorldLinearAccelY());
-      SmartDashboard.putBoolean("IMU_IsMoving",   ahrs.isMoving());
-      SmartDashboard.putBoolean("IMU_IsRotating", ahrs.isRotating());
-
-      SmartDashboard.putNumber( "RawAccel_X",     ahrs.getRawAccelX());
-      SmartDashboard.putNumber( "RawAccel_Y",     ahrs.getRawAccelY());
-      SmartDashboard.putNumber( "RawAccel_Z",     ahrs.getRawAccelZ());
-      
-    }
-  }
+  private double LimelightDriveCommand = 0.0;
+  private double LimelightSteerCommand = 0.0;
 
   @Override
   public void robotInit() {
@@ -106,10 +83,17 @@ public class Robot extends TimedRobot {
     chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", chooser);
 
+    topLeftDrive = new WPI_TalonFX(7);
+    bottomRightDrive = new WPI_TalonFX(6);
+    topRightDrive = new WPI_TalonFX(5);
+    bottomLeftDrive = new WPI_TalonFX(8);
+
+    ahrs = new AHRS(I2C.Port.kMXP);
   }
 
   @Override
   public void robotPeriodic() {
+    //Color Sensor
     final Color detectedColor = colorSensor.getColor();
     final double IR = colorSensor.getIR();
 
@@ -122,6 +106,7 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putNumber("Proximity", proximity);
 
+    //Limelight
     //read values periodically
     final double x = tx.getDouble(0.0);
     final double y = ty.getDouble(0.0);
@@ -130,7 +115,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("LimelightX", x);
     SmartDashboard.putNumber("LimelightY", y);
     SmartDashboard.putNumber("LimelightArea", area);
-    
+
   }
 
   @Override
@@ -151,6 +136,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopInit() {
+
   }
 
   @Override
@@ -214,5 +200,27 @@ public class Robot extends TimedRobot {
     }
     LimelightDriveCommand = drive_cmd;
 
+  }
+
+  public void operatorControl() {
+    while (isOperatorControl() && isEnabled()) {
+      Timer.delay(0.020); /* wait for one motor time period (50Hz) */
+
+      boolean zero_yaw_pressed = logitechAlpha.getTrigger();
+      if (zero_yaw_pressed) {
+        ahrs.zeroYaw();
+      }
+
+      /* Display Processed Acceleration Data (Linear Acceleration, Motion Detect) */
+      SmartDashboard.putNumber( "IMU_Accel_X",    ahrs.getWorldLinearAccelX());
+      SmartDashboard.putNumber( "IMU_Accel_Y",    ahrs.getWorldLinearAccelY());
+      SmartDashboard.putBoolean("IMU_IsMoving",   ahrs.isMoving());
+      SmartDashboard.putBoolean("IMU_IsRotating", ahrs.isRotating());
+
+      SmartDashboard.putNumber( "RawAccel_X",     ahrs.getRawAccelX());
+      SmartDashboard.putNumber( "RawAccel_Y",     ahrs.getRawAccelY());
+      SmartDashboard.putNumber( "RawAccel_Z",     ahrs.getRawAccelZ());
+      
+    }
   }
 }
