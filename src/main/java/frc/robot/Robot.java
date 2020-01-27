@@ -1,4 +1,3 @@
-
 //Neccesary Packages
 package frc.robot;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -10,6 +9,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.CAN;
 import edu.wpi.first.wpilibj.SerialPort;
 import com.kauailabs.navx.frc.AHRS;
+
+//Pneumatics
+import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.Solenoid;
 
 //Color Stuffs
 import edu.wpi.first.wpilibj.I2C;
@@ -38,8 +41,15 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 public class Robot extends TimedRobot {
   //AHRS ahrs;
 
-  //Things?
-  private final SendableChooser<String> chooser = new SendableChooser<>();
+  /*Things?
+  private static final String kDefaultAuto = "Default";
+  private static final String kCustomAuto = "My Auto";
+  private String autoSelected;
+  private final SendableChooser<String> chooser = new SendableChooser<>();*/
+  
+  //Pneumatics
+  Compressor compressor;
+  Solenoid solenoid;
 
   //NetworkTable
   NetworkTable table = NetworkTableInstance.getDefault().getTable("limelight");
@@ -55,12 +65,12 @@ public class Robot extends TimedRobot {
   //Drive 
   private DifferentialDrive drive;
   private SpeedControllerGroup leftDrive, rightDrive;
-  private WPI_TalonFX           topRightDrive, topLeftDrive, bottomRightDrive, bottomLeftDrive;
+  private WPI_TalonFX          topRightDrive, topLeftDrive, bottomRightDrive, bottomLeftDrive;
 
   //Mechanisms
   private CANSparkMax intakey, rolley, turret, leftClimby, rightClimby;
   private VictorSPX   conveyor;
-  private WPI_TalonFX     leftShooty, rightShooty;
+  private WPI_TalonFX leftShooty, rightShooty;
 
   //Controllers
   private Joystick logitechAlpha, logitechBeta;
@@ -70,6 +80,9 @@ public class Robot extends TimedRobot {
   private double LimelightDriveCommand = 0.0;
   private double LimelightSteerCommand = 0.0;
 
+  private AHRS arhs;
+
+  //Use for any initialization, is called whenever robot is started
   @Override
   public void robotInit() {
     //Drive
@@ -77,41 +90,47 @@ public class Robot extends TimedRobot {
     bottomRightDrive = new WPI_TalonFX(6);
     topRightDrive = new WPI_TalonFX(5);
     bottomLeftDrive = new WPI_TalonFX(8);
-    
+
     leftDrive = new SpeedControllerGroup(topLeftDrive, bottomLeftDrive);
     rightDrive = new SpeedControllerGroup(topRightDrive, bottomRightDrive);
-    
+
     drive = new DifferentialDrive(leftDrive, rightDrive);
     //Controller
     logitechAlpha = new Joystick(0);
-    
-    //Mech
-    leftShooty = new WPI_TalonFX(5);
-    rightShooty = new WPI_TalonFX(6);
- 
+    logitechBeta = new Joystick(1);
 
-    //ahrs = new AHRS(I2C.Port.kMXP);
+    //Mech
+    leftShooty = new WPI_TalonFX(9);
+    rightShooty = new WPI_TalonFX(10);
+
+    solenoid = new Solenoid(11);
+    compressor = new Compressor(12);
+    
+    /*SmartDashboard (prob dont need)
+    chooser.setDefaultOption("Default Auto", kDefaultAuto);
+    chooser.addOption("My Auto", kCustomAuto);
+    SmartDashboard.putData("Auto choices", chooser);*/
+
+    ahrs = new AHRS(I2C.Port.kMXP);
   }
+
 
   @Override
   public void robotPeriodic() {
     //Color Sensor
     final Color detectedColor = colorSensor.getColor();
     final double IR = colorSensor.getIR();
-
     SmartDashboard.putNumber("Red", detectedColor.red);
     SmartDashboard.putNumber("Green", detectedColor.green);
     SmartDashboard.putNumber("Blue", detectedColor.blue);
     SmartDashboard.putNumber("IR", IR);
-
     final int proximity = colorSensor.getProximity();
-
     SmartDashboard.putNumber("Proximity", proximity);
 
     //Limelight
     //read values periodically
-    final double x = tx.getDouble(0.0);
-    final double y = ty.getDouble(0.0);
+    final double x    = tx.getDouble(0.0);
+    final double y    = ty.getDouble(0.0);
     final double area = ta.getDouble(0.0);
     // post to smart dashboard periodically
     SmartDashboard.putNumber("LimelightX", x);
@@ -120,45 +139,38 @@ public class Robot extends TimedRobot {
 
   }
 
+  //Called when robot enters autonomous
   @Override
   public void autonomousInit() {
-    // Limelight auto
-    //Update_Limelight_Tracking();
-    timer.reset();
-    timer.start();
+    
   }
 
+  //called periodically during autonomous
   @Override
   public void autonomousPeriodic() {
-    while (timer.get() < 2.0) {
-      drive.arcadeDrive(0.5, 0.0);
-    }
+    
+
   }
 
+  //called when robot enters tele-operated mode
   @Override
   public void teleopInit() {
 
   }
 
+  //called periodically in tele-operated mode
   @Override
   public void teleopPeriodic() {
-    double varSteer = logitechAlpha.getX(Hand.kRight);
-    double varDrive = -logitechAlpha.getY(Hand.kLeft);
-    final boolean auto = logitechAlpha.getRawButton(1);
     
-    drive.arcadeDrive(logitechAlpha.getRawAxis(1) * -1, logitechAlpha.getRawAxis(4));
-    //Update_Limelight_Tracking();
-
-
-    varSteer *= 0.70;
-    varDrive *= 0.70;
+    drive.arcadeDrive(logitechAlpha.getRawAxis(1), logitechAlpha.getRawAxis(4));
+    Update_Limelight_Tracking();
 
   }
 
   @Override
   public void testPeriodic() {
   }
-/*
+
   public void Update_Limelight_Tracking() {
     final double STEER_K = 0.03;
     final double DRIVE_K = 0.26;
@@ -195,37 +207,23 @@ public class Robot extends TimedRobot {
 
   public void operatorControl() {
     while (isOperatorControl() && isEnabled()) {
-      Timer.delay(0.020); // wait for one motor time period (50Hz)
+      Timer.delay(0.020); /* wait for one motor time period (50Hz) */
 
       boolean zero_yaw_pressed = logitechAlpha.getTrigger();
       if (zero_yaw_pressed) {
         ahrs.zeroYaw();
       }
 
-      // Display Processed Acceleration Data (Linear Acceleration, Motion Detect)
-      SmartDashboard.putNumber( "IMU_Accel_X",    ahrs.getWorldLinearAccelX());
-      SmartDashboard.putNumber( "IMU_Accel_Y",    ahrs.getWorldLinearAccelY());
-      SmartDashboard.putBoolean("IMU_IsMoving",   ahrs.isMoving());
-      SmartDashboard.putBoolean("IMU_IsRotating", ahrs.isRotating());
+      /* Display Processed Acceleration Data (Linear Acceleration, Motion Detect) */
+      SmartDashboard.putNumber(  "IMU_Accel_X",    ahrs.getWorldLinearAccelX());
+      SmartDashboard.putNumber(  "IMU_Accel_Y",    ahrs.getWorldLinearAccelY());
+      SmartDashboard.putBoolean( "IMU_IsMoving",   ahrs.isMoving());
+      SmartDashboard.putBoolean( "IMU_IsRotating", ahrs.isRotating());
 
-      SmartDashboard.putNumber( "RawAccel_X",     ahrs.getRawAccelX());
-      SmartDashboard.putNumber( "RawAccel_Y",     ahrs.getRawAccelY());
-      SmartDashboard.putNumber( "RawAccel_Z",     ahrs.getRawAccelZ());
+      SmartDashboard.putNumber(  "RawAccel_X",     ahrs.getRawAccelX());
+      SmartDashboard.putNumber(  "RawAccel_Y",     ahrs.getRawAccelY());
+      SmartDashboard.putNumber(  "RawAccel_Z",     ahrs.getRawAccelZ());
       
     }
   }
-  */
-
-  /* WHat the hell are you doing putting this in teleop
-if (auto) {
-      if (LimelightHasTarget) {
-        drive.arcadeDrive(LimelightDriveCommand, LimelightSteerCommand);
-      } else {
-        drive.arcadeDrive(0.0, 0.0);
-      }
-    } else {
-      drive.arcadeDrive(varDrive, varSteer);
-    }
-
-  */
 }
