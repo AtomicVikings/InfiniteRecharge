@@ -68,9 +68,9 @@ public class Robot extends TimedRobot {
   private WPI_TalonFX          topRightDrive, topLeftDrive, bottomRightDrive, bottomLeftDrive;
 
   //Mechanisms
-  private CANSparkMax intakey, rolley, turret, leftClimby, rightClimby;
+  private CANSparkMax intakey, rolley, leftClimby, rightClimby;
   private VictorSPX   conveyor;
-  private WPI_TalonFX leftShooty, rightShooty;
+  private WPI_TalonFX leftShooty, rightShooty, turret;
 
   //Controllers
   private Joystick logitechAlpha, logitechBeta;
@@ -103,7 +103,7 @@ public class Robot extends TimedRobot {
     //Mech
     leftShooty = new WPI_TalonFX(9);
     rightShooty = new WPI_TalonFX(10);
-    turret = new CANSparkMax(15, MotorType.kBrushless);
+    turret = new WPI_TalonFX(15);
 
 
     solenoid = new Solenoid(11);
