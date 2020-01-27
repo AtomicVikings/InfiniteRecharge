@@ -80,7 +80,7 @@ public class Robot extends TimedRobot {
   private double LimelightDriveCommand = 0.0;
   private double LimelightSteerCommand = 0.0;
 
-  private AHRS arhs;
+  private AHRS ahrs;
 
   //Use for any initialization, is called whenever robot is started
   @Override
