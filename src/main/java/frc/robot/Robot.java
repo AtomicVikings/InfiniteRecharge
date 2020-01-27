@@ -80,7 +80,7 @@ public class Robot extends TimedRobot {
   private double LimelightDriveCommand = 0.0;
   private double LimelightSteerCommand = 0.0;
 
-  private AHRS ahrs;
+  //private AHRS ahrs;
 
   //Use for any initialization, is called whenever robot is started
   @Override
@@ -95,6 +95,7 @@ public class Robot extends TimedRobot {
     rightDrive = new SpeedControllerGroup(topRightDrive, bottomRightDrive);
 
     drive = new DifferentialDrive(leftDrive, rightDrive);
+    
     //Controller
     logitechAlpha = new Joystick(0);
     logitechBeta = new Joystick(1);
@@ -102,16 +103,13 @@ public class Robot extends TimedRobot {
     //Mech
     leftShooty = new WPI_TalonFX(9);
     rightShooty = new WPI_TalonFX(10);
+    turret = new CANSparkMax(15, MotorType.kBrushless);
+
 
     solenoid = new Solenoid(11);
     compressor = new Compressor(12);
-    
-    /*SmartDashboard (prob dont need)
-    chooser.setDefaultOption("Default Auto", kDefaultAuto);
-    chooser.addOption("My Auto", kCustomAuto);
-    SmartDashboard.putData("Auto choices", chooser);*/
-
-    ahrs = new AHRS(I2C.Port.kMXP);
+    //NavX 
+    //ahrs = new AHRS(I2C.Port.kMXP);
   }
 
 
@@ -148,7 +146,13 @@ public class Robot extends TimedRobot {
   //called periodically during autonomous
   @Override
   public void autonomousPeriodic() {
-    
+    while (timer.get() < 2.0) {
+      drive.arcadeDrive(0.5, 0.0);
+    }
+
+    while (timer.get() < 5.0) {
+      drive.arcadeDrive(0.5, 0.4);
+    }
 
   }
 
@@ -161,16 +165,19 @@ public class Robot extends TimedRobot {
   //called periodically in tele-operated mode
   @Override
   public void teleopPeriodic() {
-    
     drive.arcadeDrive(logitechAlpha.getRawAxis(1), logitechAlpha.getRawAxis(4));
-    Update_Limelight_Tracking();
-
+    //Update_Limelight_Tracking();
+    if (logitechAlpha.getRawButton(4) == true) {
+      turret.set(1);
+    } else if(logitechAlpha.getRawButton(5) == true) {
+      turret.set(-1);
+    }
   }
 
   @Override
   public void testPeriodic() {
   }
-
+  /*
   public void Update_Limelight_Tracking() {
     final double STEER_K = 0.03;
     final double DRIVE_K = 0.26;
@@ -207,14 +214,14 @@ public class Robot extends TimedRobot {
 
   public void operatorControl() {
     while (isOperatorControl() && isEnabled()) {
-      Timer.delay(0.020); /* wait for one motor time period (50Hz) */
+      Timer.delay(0.020); // wait for one motor time period (50Hz) 
 
       boolean zero_yaw_pressed = logitechAlpha.getTrigger();
       if (zero_yaw_pressed) {
         ahrs.zeroYaw();
       }
 
-      /* Display Processed Acceleration Data (Linear Acceleration, Motion Detect) */
+      // Display Processed Acceleration Data (Linear Acceleration, Motion Detect) 
       SmartDashboard.putNumber(  "IMU_Accel_X",    ahrs.getWorldLinearAccelX());
       SmartDashboard.putNumber(  "IMU_Accel_Y",    ahrs.getWorldLinearAccelY());
       SmartDashboard.putBoolean( "IMU_IsMoving",   ahrs.isMoving());
@@ -226,4 +233,5 @@ public class Robot extends TimedRobot {
       
     }
   }
+  */
 }
