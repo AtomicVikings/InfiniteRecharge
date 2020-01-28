@@ -36,12 +36,9 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 
 
 public class Robot extends TimedRobot {
-  AHRS ahrs;
+  //AHRS ahrs;
 
   //Things?
-  private static final String kDefaultAuto = "Default";
-  private static final String kCustomAuto = "My Auto";
-  private String autoSelected;
   private final SendableChooser<String> chooser = new SendableChooser<>();
 
   //NetworkTable
@@ -57,6 +54,7 @@ public class Robot extends TimedRobot {
   private Timer timer = new Timer();
   //Drive 
   private DifferentialDrive drive;
+  private SpeedControllerGroup leftDrive, rightDrive;
   private WPI_TalonFX           topRightDrive, topLeftDrive, bottomRightDrive, bottomLeftDrive;
 
   //Mechanisms
@@ -74,21 +72,25 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotInit() {
-    //Mech
-    leftShooty = new WPI_TalonFX(5);
-    rightShooty = new WPI_TalonFX(6);
-
-    //SmartDashboard (prob dont need)
-    chooser.setDefaultOption("Default Auto", kDefaultAuto);
-    chooser.addOption("My Auto", kCustomAuto);
-    SmartDashboard.putData("Auto choices", chooser);
-
+    //Drive
     topLeftDrive = new WPI_TalonFX(7);
     bottomRightDrive = new WPI_TalonFX(6);
     topRightDrive = new WPI_TalonFX(5);
     bottomLeftDrive = new WPI_TalonFX(8);
+    
+    leftDrive = new SpeedControllerGroup(topLeftDrive, bottomLeftDrive);
+    rightDrive = new SpeedControllerGroup(topRightDrive, bottomRightDrive);
+    
+    drive = new DifferentialDrive(leftDrive, rightDrive);
+    //Controller
+    logitechAlpha = new Joystick(0);
+    
+    //Mech
+    leftShooty = new WPI_TalonFX(5);
+    rightShooty = new WPI_TalonFX(6);
+ 
 
-    ahrs = new AHRS(I2C.Port.kMXP);
+    //ahrs = new AHRS(I2C.Port.kMXP);
   }
 
   @Override
@@ -121,10 +123,9 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousInit() {
     // Limelight auto
-    Update_Limelight_Tracking();
+    //Update_Limelight_Tracking();
     timer.reset();
     timer.start();
-    autoSelected = chooser.getSelected();
   }
 
   @Override
@@ -145,29 +146,19 @@ public class Robot extends TimedRobot {
     double varDrive = -logitechAlpha.getY(Hand.kLeft);
     final boolean auto = logitechAlpha.getRawButton(1);
     
-    drive.arcadeDrive(logitechAlpha.getRawAxis(1), logitechAlpha.getRawAxis(4));
-    Update_Limelight_Tracking();
+    drive.arcadeDrive(logitechAlpha.getRawAxis(1) * -1, logitechAlpha.getRawAxis(4));
+    //Update_Limelight_Tracking();
 
 
     varSteer *= 0.70;
     varDrive *= 0.70;
-
-    if (auto) {
-      if (LimelightHasTarget) {
-        drive.arcadeDrive(LimelightDriveCommand, LimelightSteerCommand);
-      } else {
-        drive.arcadeDrive(0.0, 0.0);
-      }
-    } else {
-      drive.arcadeDrive(varDrive, varSteer);
-    }
 
   }
 
   @Override
   public void testPeriodic() {
   }
-
+/*
   public void Update_Limelight_Tracking() {
     final double STEER_K = 0.03;
     final double DRIVE_K = 0.26;
@@ -204,14 +195,14 @@ public class Robot extends TimedRobot {
 
   public void operatorControl() {
     while (isOperatorControl() && isEnabled()) {
-      Timer.delay(0.020); /* wait for one motor time period (50Hz) */
+      Timer.delay(0.020); // wait for one motor time period (50Hz)
 
       boolean zero_yaw_pressed = logitechAlpha.getTrigger();
       if (zero_yaw_pressed) {
         ahrs.zeroYaw();
       }
 
-      /* Display Processed Acceleration Data (Linear Acceleration, Motion Detect) */
+      // Display Processed Acceleration Data (Linear Acceleration, Motion Detect)
       SmartDashboard.putNumber( "IMU_Accel_X",    ahrs.getWorldLinearAccelX());
       SmartDashboard.putNumber( "IMU_Accel_Y",    ahrs.getWorldLinearAccelY());
       SmartDashboard.putBoolean("IMU_IsMoving",   ahrs.isMoving());
@@ -223,4 +214,18 @@ public class Robot extends TimedRobot {
       
     }
   }
+  */
+
+  /* WHat the hell are you doing putting this in teleop
+if (auto) {
+      if (LimelightHasTarget) {
+        drive.arcadeDrive(LimelightDriveCommand, LimelightSteerCommand);
+      } else {
+        drive.arcadeDrive(0.0, 0.0);
+      }
+    } else {
+      drive.arcadeDrive(varDrive, varSteer);
+    }
+
+  */
 }
