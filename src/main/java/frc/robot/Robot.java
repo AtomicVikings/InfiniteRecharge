@@ -3,6 +3,7 @@ package frc.robot;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
+
 //Smart Dashboard
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -19,6 +20,7 @@ import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.util.Color;
 import com.revrobotics.ColorSensorV3;
+
 //Motor Controllers
 import com.revrobotics.CANSparkMax;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
@@ -26,6 +28,7 @@ import edu.wpi.first.wpilibj.Talon;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
+
 //Drive
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.Joystick;
@@ -39,17 +42,9 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 
 
 public class Robot extends TimedRobot {
-  //AHRS ahrs;
-
-  /*Things?
-  private static final String kDefaultAuto = "Default";
-  private static final String kCustomAuto = "My Auto";
-  private String autoSelected;
-  private final SendableChooser<String> chooser = new SendableChooser<>();*/
-  
   //Pneumatics
-  Compressor compressor;
-  Solenoid solenoid;
+  //Compressor compressor;
+  //Solenoid solenoid;
 
   //NetworkTable
   NetworkTable table = NetworkTableInstance.getDefault().getTable("limelight");
@@ -64,13 +59,13 @@ public class Robot extends TimedRobot {
   private Timer timer = new Timer();
   //Drive 
   private DifferentialDrive drive;
-  private SpeedControllerGroup leftDrive, rightDrive;
+  private SpeedControllerGroup leftDrive, rightDrive, turrets;
   private WPI_TalonFX          topRightDrive, topLeftDrive, bottomRightDrive, bottomLeftDrive;
 
   //Mechanisms
   private CANSparkMax intakey, rolley, leftClimby, rightClimby;
   private VictorSPX   conveyor;
-  private WPI_TalonFX leftShooty, rightShooty, turret;
+  private WPI_TalonFX leftShooty, rightShooty, turret1, turret2;
 
   //Controllers
   private Joystick logitechAlpha, logitechBeta;
@@ -93,7 +88,6 @@ public class Robot extends TimedRobot {
 
     leftDrive = new SpeedControllerGroup(topLeftDrive, bottomLeftDrive);
     rightDrive = new SpeedControllerGroup(topRightDrive, bottomRightDrive);
-
     drive = new DifferentialDrive(leftDrive, rightDrive);
     
     //Controller
@@ -101,13 +95,14 @@ public class Robot extends TimedRobot {
     logitechBeta = new Joystick(1);
 
     //Mech
-    leftShooty = new WPI_TalonFX(9);
-    rightShooty = new WPI_TalonFX(10);
-    turret = new WPI_TalonFX(15);
+    //leftShooty = new WPI_TalonFX(9);
+    //rightShooty = new WPI_TalonFX(15);
+    turret1 = new WPI_TalonFX(9);
+    turret2 = new WPI_TalonFX(10);
 
-
-    solenoid = new Solenoid(11);
-    compressor = new Compressor(12);
+    turrets = new SpeedControllerGroup(turret1, turret2);
+    //solenoid = new Solenoid(11);
+    //compressor = new Compressor(12);
     //NavX 
     //ahrs = new AHRS(I2C.Port.kMXP);
   }
@@ -165,12 +160,14 @@ public class Robot extends TimedRobot {
   //called periodically in tele-operated mode
   @Override
   public void teleopPeriodic() {
-    drive.arcadeDrive(logitechAlpha.getRawAxis(1), logitechAlpha.getRawAxis(4));
+    //drive.arcadeDrive(logitechAlpha.getRawAxis(1), logitechAlpha.getRawAxis(4));
     //Update_Limelight_Tracking();
     if (logitechAlpha.getRawButton(4) == true) {
-      turret.set(1);
+      turrets.set(1);
     } else if(logitechAlpha.getRawButton(5) == true) {
-      turret.set(-1);
+      turrets.set(-1);
+    } else {
+      turrets.set(0);
     }
   }
 
